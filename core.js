@@ -22,7 +22,7 @@
   }
   function shuffle(arr) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = randInt(i + 1); [a[i], a[j]] = [a[j], a[i]]; } return a; }
 
-  const generatePassphrase = () => { const w = []; for (let i = 0; i < 4; i++) w.push(WORDS[randInt(WORDS.length)]); return w.join("-") + "-" + String(randInt(100)).padStart(2, "0"); };
+  const generatePassphrase = () => { const w = []; for (let i = 0; i < 2; i++) w.push(WORDS[randInt(WORDS.length)]); return w.join("-") + "-" + String(randInt(100)).padStart(2, "0"); };
   const normPass = p => p.trim().toLowerCase().replace(/\s+/g, "-");
   const normName = n => n.trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/\s+/g, " ");
   const docId = n => b64u(enc.encode(normName(n)));

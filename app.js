@@ -1,6 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, signOut, setPersistence, inMemoryPersistence } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import { getFirestore, doc, getDoc, getDocs, setDoc, deleteDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import { getFirestore, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import { firebaseConfig } from "./firebase-config.js";
 
 const SS = window.SS;
@@ -178,10 +178,10 @@ async function guestLogin(name, pass) {
   const d = snap.data();
   if (!d.c) throw new UserError("Per te non c'è ancora un abbinamento: scrivi all'organizzatore.");
   let target; try { target = await SS.decryptFor(pass, d); } catch (e) { throw new UserError("Nome o password non corretti."); }
-  showGift(d.name, target);
+  showGift(d.name, target, SS.docId(name), !!d.opened);
 }
 
-function showGift(name, target) {
+function showGift(name, target, id, wasOpened) {
   show("s-login", false); banner(""); $("sub").textContent = "";
   $("greet").textContent = `Ciao ${name}! 🎅`;
   const gift = $("gift"); gift.className = "gift"; show("reveal", false); show("tap"); show("gift-hint"); $("who").textContent = "";
@@ -194,6 +194,7 @@ function showGift(name, target) {
     const r = gift.getBoundingClientRect(); confetti(r.left + r.width / 2, r.top + 30, 190);
     await new Promise(r => setTimeout(r, 450));
     show("reveal"); await scramble($("who"), target);
+    if (!wasOpened) updateDoc(doc(db, "people", id), { opened: true, openedAt: Date.now() }).catch(() => {}); // segnala a root che il regalo è stato aperto
     confetti(innerWidth * .2, innerHeight * .85, 70); confetti(innerWidth * .8, innerHeight * .85, 70);
   };
   gift.onclick = open; gift.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); open(); } };
@@ -219,7 +220,7 @@ async function rootLogin(pass) {
 async function loadAdmin() {
   const cfg = await getCfg();
   const snap = await getDocs(collection(db, "people"));
-  const people = snap.docs.map(d => ({ name: d.data().name, has: !!d.data().c })).sort((a, b) => a.name.localeCompare(b.name, "it"));
+  const people = snap.docs.map(d => ({ name: d.data().name, has: !!d.data().c, opened: !!d.data().opened })).sort((a, b) => a.name.localeCompare(b.name, "it"));
   let master = null, masterErr = false;
   const ms = await getDoc(doc(db, "private", "master"));
   if (ms.exists()) { try { master = JSON.parse(await SS.decryptFor(rootPass, ms.data())); } catch (e) { masterErr = true; } }
@@ -235,6 +236,14 @@ function parseGroups(text, names) {
   const lines = text.split("\n").map(l => l.split(",").map(s => s.trim()).filter(Boolean)).filter(g => g.length > 1);
   const lower = new Map(names.map(n => [SS.normName(n), n]));
   return lines.map(g => g.map(n => { const f = lower.get(SS.normName(n)); if (!f) throw new UserError(`Nei gruppi c'è "${n}", che non è tra i partecipanti.`); return f; }));
+}
+
+const GIFT_CLOSED = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="14" width="22" height="14" rx="2" fill="#d6283a"/><rect x="3" y="9" width="26" height="6" rx="2" fill="#ff5468"/><rect x="14" y="9" width="4" height="19" fill="#ffd166"/><path d="M16 9C13 3 7 5 10 9M16 9c3-6 9-4 6 0" fill="none" stroke="#ffd166" stroke-width="2"/></svg>';
+const GIFT_OPEN = '<svg viewBox="0 0 32 32" aria-hidden="true"><rect x="5" y="16" width="22" height="12" rx="2" fill="#d6283a"/><rect x="14" y="16" width="4" height="12" fill="#ffd166"/><g transform="rotate(-26 24 8)"><rect x="13" y="4" width="22" height="6" rx="2" fill="#ff5468"/><rect x="22" y="4" width="4" height="6" fill="#ffd166"/></g><path d="M9 13l1.3-3.2L11.6 13l3.2 1.3-3.2 1.3L10.3 19l-1.3-3.4-3.2-1.3z" fill="#fff"/><circle cx="17" cy="8" r="1.4" fill="#ffd166"/></svg>';
+function giftIcon(opened) {
+  const s = document.createElement("span"); s.className = "gicon" + (opened ? " opened" : "");
+  s.title = opened ? "Regalo aperto" : "Regalo ancora chiuso"; s.innerHTML = opened ? GIFT_OPEN : GIFT_CLOSED;
+  const t = document.createElement("small"); t.textContent = opened ? "aperto" : "chiuso"; s.append(t); return s;
 }
 
 function renderAdmin() {
@@ -258,12 +267,13 @@ function renderAdmin() {
   for (const p of people) {
     const pw = master && master.passes && master.passes[p.name];
     const row = document.createElement("div"); row.className = "cred";
-    const l = document.createElement("div"); const b = document.createElement("strong"); b.textContent = p.name; const br = document.createElement("div"); const code = document.createElement("code"); code.textContent = pw || "—"; br.append(code); l.append(b, br);
+    const l = document.createElement("div"); const b = document.createElement("strong"); b.textContent = p.name;
+    if (assigned && p.has) b.append(giftIcon(p.opened)); const br = document.createElement("div"); const code = document.createElement("code"); code.textContent = pw || "—"; br.append(code); l.append(b, br);
     const btn = document.createElement("button"); btn.className = "small"; btn.textContent = "Copia"; btn.disabled = !pw;
-    btn.onclick = () => copy(`Ciao ${p.name}! 🎅 Secret Santa: ${link()}\nNome: ${p.name}\nPassword: ${pw}`);
+    btn.onclick = () => copy(`Nome: ${p.name}\nPassword: ${pw}`);
     row.append(l, btn); box.append(row);
   }
-  $("a-copyall").onclick = () => copy(people.map(p => `${p.name}: ${(master && master.passes && master.passes[p.name]) || "—"}`).join("\n"));
+  $("a-copyall").onclick = () => copy(people.map(p => `Nome: ${p.name}\nPassword: ${(master && master.passes && master.passes[p.name]) || "—"}`).join("\n\n"));
 }
 
 async function refresh() { await loadAdmin(); renderAdmin(); }
@@ -327,3 +337,4 @@ $("a-reveal").onclick = async () => {
 };
 $("a-hide").onclick = () => { show("a-pairs", false); show("a-hide", false); show("a-reveal"); $("a-pairs").innerHTML = ""; };
 $("a-out").onclick = backToLogin;
+$("a-refresh").onclick = () => guard(async () => { await refresh(); toast("Aggiornato ✓"); });

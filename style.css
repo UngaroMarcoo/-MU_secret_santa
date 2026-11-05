@@ -135,3 +135,14 @@ dialog .btns { display:flex; gap:10px; justify-content:flex-end; }
 
 @media (max-width:420px) { .glass { padding:16px; border-radius:20px; } .stack.two { grid-template-columns:1fr; } }
 @media (prefers-reduced-motion:reduce) { *,*::before,*::after { animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; } #snow { display:none; } }
+
+/* --- fix: i raggi del regalo non devono intercettare i tocchi, il pulsante Esci sta sempre sopra --- */
+.reveal .rays, .gift.open { pointer-events:none; }
+#g-out { position:relative; z-index:3; }
+
+/* --- icona regalo aperto/chiuso (pannello root) --- */
+.gicon { display:inline-flex; align-items:center; gap:4px; margin-left:8px; vertical-align:middle; opacity:.7; }
+.gicon svg { width:24px; height:24px; }
+.gicon small { font-size:.75rem; font-weight:700; color:var(--muted); }
+.gicon.opened { opacity:1; filter:drop-shadow(0 0 6px rgba(255,209,102,.7)); }
+.gicon.opened small { color:var(--gold); }

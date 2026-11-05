@@ -18,6 +18,9 @@ service cloud.firestore {
       allow get: if true;
       allow list: if isRoot();
       allow write: if isRoot();
+      // Chiunque può solo segnare "regalo aperto" (nessun altro campo modificabile).
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(['opened', 'openedAt'])
+                    && request.resource.data.opened == true;
     }
 
     // Password e abbinamenti cifrati con la password di root: leggibile solo da root.

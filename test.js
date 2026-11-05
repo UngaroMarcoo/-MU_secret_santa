@@ -23,7 +23,7 @@ const { draw, encryptFor, decryptFor, generatePassphrase, normName, docId, WORDS
   console.log("ok  caso impossibile");
 
   const pass = generatePassphrase();
-  assert(/^[a-z]+(-[a-z]+){3}-\d\d$/.test(pass), "formato password: " + pass);
+  assert(/^[a-z]+-[a-z]+-\d\d$/.test(pass), "formato password: " + pass);
   const e = await encryptFor(pass, "Marta");
   assert.strictEqual(await decryptFor(pass, e), "Marta");
   assert.strictEqual(await decryptFor("  " + pass.toUpperCase().replace(/-/g, " ") + " ", e), "Marta");
