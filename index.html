@@ -2,251 +2,123 @@
 <html lang="it">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Secret Santa</title>
-<style>
-  :root { --bg:#fafaf7; --fg:#1d1d1b; --muted:#6b6b66; --card:#fff; --line:#dcdcd4; --accent:#c0392b; --accent-fg:#fff; --ok:#1e7a46; }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg:#16161a; --fg:#ececea; --muted:#9a9a94; --card:#202026; --line:#34343c; --accent:#e0584a; --accent-fg:#fff; --ok:#5fcf8f; }
-  }
-  * { box-sizing: border-box; }
-  body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif; }
-  main { max-width:560px; margin:0 auto; padding:24px 16px 64px; }
-  h1 { font-size:1.6rem; margin:0 0 4px; }
-  h2 { font-size:1.1rem; margin:24px 0 8px; }
-  p.sub { color:var(--muted); margin:0 0 20px; }
-  .card { background:var(--card); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:16px; }
-  label { display:block; font-weight:600; margin:12px 0 4px; }
-  label:first-child { margin-top:0; }
-  input, textarea, select { width:100%; padding:10px 12px; font:inherit; color:inherit; background:var(--bg); border:1px solid var(--line); border-radius:8px; }
-  textarea { min-height:140px; resize:vertical; }
-  button { font:inherit; font-weight:600; padding:10px 16px; border-radius:8px; border:1px solid var(--line); background:var(--card); color:var(--fg); cursor:pointer; }
-  button.primary { background:var(--accent); color:var(--accent-fg); border-color:var(--accent); width:100%; margin-top:16px; }
-  button.small { padding:4px 10px; font-size:.85rem; }
-  button:disabled { opacity:.6; cursor:wait; }
-  .hint { color:var(--muted); font-size:.9rem; margin:4px 0 0; }
-  .error { color:var(--accent); margin-top:12px; font-weight:600; }
-  .result { text-align:center; padding:24px 8px; }
-  .result .name { font-size:2rem; font-weight:800; color:var(--ok); margin:8px 0; word-break:break-word; }
-  .row { display:flex; gap:8px; align-items:center; justify-content:space-between; padding:8px 0; border-top:1px solid var(--line); }
-  .row:first-child { border-top:0; }
-  .row code { font-size:.95rem; word-break:break-all; }
-  .linkbox { word-break:break-all; font-family:ui-monospace,Menlo,monospace; font-size:.8rem; background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:10px; margin:8px 0; max-height:120px; overflow:auto; }
-  .hidden { display:none; }
-</style>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b1030">
+<title>Secret Santa 🎅</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Mountains+of+Christmas:wght@700&family=Quicksand:wght@500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-<main>
-  <h1 id="title">🎁 Secret Santa</h1>
-  <p class="sub" id="subtitle"></p>
+<div class="aurora"></div>
+<div id="stars"></div>
+<canvas id="snow"></canvas>
+<canvas id="confetti"></canvas>
+<div id="garland"></div>
+<div class="sleigh">🦌🦌🦌🛷🎅</div>
 
-  <!-- MODALITA' PARTECIPANTE -->
-  <section id="view-guest" class="hidden">
-    <div class="card">
-      <label for="g-name">Chi sei?</label>
-      <select id="g-name"></select>
-      <label for="g-pass">La tua parola segreta</label>
-      <input id="g-pass" type="text" autocomplete="off" autocapitalize="none" spellcheck="false" placeholder="es. mela-tigre-luna-ponte-42">
-      <p class="hint">Te l'ha mandata in privato chi ha organizzato l'estrazione.</p>
-      <button class="primary" id="g-go">Scopri a chi fai il regalo</button>
-      <div class="error hidden" id="g-error"></div>
-    </div>
-    <div class="card result hidden" id="g-result">
-      <div>Devi fare il regalo a</div>
-      <div class="name" id="g-target"></div>
-      <p class="hint">Non mostrare lo schermo a nessuno 🤫</p>
-    </div>
+<main id="app">
+  <header class="hero">
+    <div class="tree">🎄</div>
+    <h1 id="title">Secret Santa</h1>
+    <p class="sub" id="sub">Chi ti è toccato quest'anno? 🎁</p>
+  </header>
+
+  <div id="banner" class="banner hidden"></div>
+
+  <!-- LOGIN -->
+  <section id="s-login" class="glass">
+    <form id="login-form" autocomplete="on">
+      <label for="f-name">Nome</label>
+      <input id="f-name" name="username" type="text" autocomplete="username" autocapitalize="words" spellcheck="false" placeholder="Il tuo nome" required>
+      <label for="f-pass">Password</label>
+      <div class="field">
+        <input id="f-pass" class="pw" name="password" type="password" autocomplete="current-password" autocapitalize="none" spellcheck="false" placeholder="La tua parola segreta" required>
+        <button type="button" class="eye" id="eye" aria-label="Mostra password">👁</button>
+      </div>
+      <button class="primary" id="f-go" type="submit">Entra 🎅</button>
+      <div class="msg" id="f-msg"></div>
+    </form>
   </section>
 
-  <!-- MODALITA' ORGANIZZATORE -->
-  <section id="view-org" class="hidden">
-    <div class="card">
-      <label for="o-title">Titolo (facoltativo)</label>
-      <input id="o-title" type="text" placeholder="es. Secret Santa 2026">
-      <label for="o-names">Partecipanti (uno per riga)</label>
-      <textarea id="o-names" placeholder="Anna&#10;Luca&#10;Marta&#10;Paolo"></textarea>
-      <label for="o-excl">Chi non può regalare a chi (facoltativo)</label>
-      <textarea id="o-excl" style="min-height:70px" placeholder="Anna, Luca&#10;Marta, Paolo"></textarea>
-      <p class="hint">Una riga per gruppo, nomi separati da virgola (es. le coppie). Le persone dello stesso gruppo non si pescano fra loro.</p>
-      <button class="primary" id="o-go">Estrai e genera il link</button>
-      <div class="error hidden" id="o-error"></div>
+  <!-- REGALO (partecipante) -->
+  <section id="s-gift" class="glass giftwrap hidden">
+    <p class="greet" id="greet"></p>
+    <p class="hint" id="gift-hint">Hai un regalo da scartare…</p>
+    <div class="gift" id="gift" role="button" tabindex="0" aria-label="Apri il regalo">
+      <div class="gift-lid"><span class="bow">🎀</span></div>
+      <div class="gift-box"></div>
+    </div>
+    <p class="tap" id="tap">Tocca il regalo per aprirlo</p>
+    <div class="reveal hidden" id="reveal">
+      <div class="rays"></div>
+      <p class="lead">Devi fare il regalo a</p>
+      <div class="who" id="who"></div>
+      <p class="shh">Shhh… è un segreto 🤫</p>
+    </div>
+    <button class="small" id="g-out" style="margin-top:18px">Esci</button>
+  </section>
+
+  <!-- ADMIN (root) -->
+  <section id="s-admin" class="hidden">
+    <div class="glass">
+      <div class="bar">
+        <h2 style="margin:0">Pannello organizzatore</h2>
+        <button class="small" id="a-out">Esci</button>
+      </div>
+      <p style="margin:0">Estrazione: <span class="pill no" id="a-status">non fatta</span></p>
+      <p class="hint" id="a-status-hint"></p>
     </div>
 
-    <div class="hidden" id="o-out">
-      <div class="card">
-        <h2 style="margin-top:0">1. Link da mandare nel gruppo</h2>
-        <div class="linkbox" id="o-link"></div>
-        <button id="o-copy-link">Copia link</button>
+    <div class="glass">
+      <h2>🧑‍🤝‍🧑 Partecipanti</h2>
+      <div class="addrow">
+        <input id="a-newname" type="text" placeholder="Nome (anche tu)" autocapitalize="words" autocomplete="off">
+        <button class="gold" id="a-add">Aggiungi</button>
       </div>
-      <div class="card">
-        <h2 style="margin-top:0">2. Parole segrete (da mandare in privato)</h2>
-        <p class="hint">Ognuna serve solo alla persona indicata. Gli abbinamenti non vengono mostrati a nessuno, nemmeno a te.</p>
-        <div id="o-passes"></div>
-        <button id="o-copy-all" style="margin-top:8px">Copia tutte</button>
+      <div class="chips" id="a-people"></div>
+      <label for="a-groups" style="margin-top:18px">Chi non può regalare a chi (facoltativo)</label>
+      <textarea id="a-groups" placeholder="Anna, Luca&#10;Marta, Paolo"></textarea>
+      <p class="hint">Una riga per gruppo, nomi separati da virgola (per esempio le coppie).</p>
+    </div>
+
+    <div class="glass">
+      <h2>🎲 Estrazione</h2>
+      <div class="stack">
+        <button class="primary" id="a-draw" style="margin-top:0">Fai partire l'estrazione</button>
+        <button class="danger hidden" id="a-reset">Annulla l'estrazione</button>
       </div>
+      <p class="hint">Nessuno vedrà il risultato, nemmeno tu: ognuno lo scopre con la propria password.</p>
+    </div>
+
+    <div class="glass">
+      <h2>🔑 Credenziali</h2>
+      <p class="hint" style="margin:0 0 6px">Da mandare in privato a ciascuno (nome + password). Le password restano le stesse anche se rifai l'estrazione.</p>
+      <div id="a-creds"></div>
+      <button id="a-copyall" class="small" style="margin-top:10px">Copia tutte</button>
+    </div>
+
+    <div class="glass">
+      <h2>👀 Solo in caso di necessità</h2>
+      <p class="hint" style="margin:0 0 12px">Mostra tutti gli abbinamenti. Usalo solo se serve davvero: rovina la sorpresa!</p>
+      <button class="danger" id="a-reveal">Mostra gli abbinamenti…</button>
+      <ul class="pairs hidden" id="a-pairs"></ul>
+      <button class="small hidden" id="a-hide" style="margin-top:12px">Nascondi</button>
     </div>
   </section>
 </main>
 
-<script>
-/* ===== Nucleo: estrazione e cifratura (testabile anche da Node) ===== */
-const WORDS = ("albero amico arancia aurora bacio balena bosco brezza caffe camino candela castagna cielo cometa cuore "+
-"dolce drago estate falco farfalla fiocco fiume foglia fragola gatto gelato giglio girasole gufo inverno isola "+
-"lampo lanterna lepre limone luna luce magia mandorla mare mela miele montagna nebbia neve nuvola oceano orso "+
-"panda pane parco pepe pesca pigna pino pioggia ponte prato quercia razzo regalo riccio rosa sabbia sale "+
-"scoiattolo sentiero sole sorriso stella strada tavolo tigre torta tramonto treno tulipano uccello uva vento "+
-"viola volpe zucchero zucca abete arco baita bandiera biscotto bolla bussola cacao campana canto carota "+
-"corallo cristallo delfino dado fata fuoco giardino gioco lago lupo marmo mirtillo nido noce onda palla "+
-"pavone penna perla piuma polvere rana ruota scala scatola seme tamburo tenda tesoro vela vulcano zaino").split(" ").filter(w=>!/\d/.test(w));
+<div class="ground"><div class="trees" id="trees"></div></div>
 
-const PBKDF2_ITER = 300000;
-const enc = new TextEncoder(), dec = new TextDecoder();
+<dialog id="dlg">
+  <h3 id="dlg-title"></h3>
+  <p id="dlg-text"></p>
+  <div class="btns"><button id="dlg-cancel">Annulla</button><button class="gold" id="dlg-ok">Conferma</button></div>
+</dialog>
+<div class="toast" id="toast"></div>
 
-function b64u(bytes){ let s=""; for (const b of bytes) s+=String.fromCharCode(b); return btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""); }
-function unb64u(str){ str=str.replace(/-/g,"+").replace(/_/g,"/"); while(str.length%4) str+="="; const s=atob(str); const u=new Uint8Array(s.length); for(let i=0;i<s.length;i++) u[i]=s.charCodeAt(i); return u; }
-
-function randInt(n){ // intero uniforme in [0,n) senza bias
-  const lim = Math.floor(0x100000000 / n) * n; const a = new Uint32Array(1);
-  do { crypto.getRandomValues(a); } while (a[0] >= lim);
-  return a[0] % n;
-}
-function shuffle(arr){ const a=arr.slice(); for(let i=a.length-1;i>0;i--){ const j=randInt(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
-
-function generatePassphrase(){
-  const w=[]; for(let i=0;i<4;i++) w.push(WORDS[randInt(WORDS.length)]);
-  return w.join("-")+"-"+String(randInt(100)).padStart(2,"0");
-}
-function normPass(p){ return p.trim().toLowerCase().replace(/\s+/g,"-"); }
-
-/* Ritorna {giver: receiver} oppure null se impossibile. groups = array di array di nomi che non si pescano fra loro. */
-function draw(names, groups){
-  const forbidden = new Map(names.map(n=>[n,new Set([n])]));
-  for (const g of groups) for (const a of g) for (const b of g) if (forbidden.has(a) && forbidden.has(b)) forbidden.get(a).add(b);
-  const givers = shuffle(names), taken = new Set(), result = {};
-  function go(i){
-    if (i===givers.length) return true;
-    const g = givers[i];
-    for (const r of shuffle(names)) {
-      if (taken.has(r) || forbidden.get(g).has(r)) continue;
-      taken.add(r); result[g]=r;
-      if (go(i+1)) return true;
-      taken.delete(r); delete result[g];
-    }
-    return false;
-  }
-  return go(0) ? result : null;
-}
-
-async function deriveKey(pass, salt){
-  const base = await crypto.subtle.importKey("raw", enc.encode(normPass(pass)), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey({name:"PBKDF2", salt, iterations:PBKDF2_ITER, hash:"SHA-256"}, base, {name:"AES-GCM", length:256}, false, ["encrypt","decrypt"]);
-}
-async function encryptFor(pass, text){
-  const salt = crypto.getRandomValues(new Uint8Array(16)), iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({name:"AES-GCM", iv}, await deriveKey(pass, salt), enc.encode(text)));
-  return {s:b64u(salt), i:b64u(iv), c:b64u(ct)};
-}
-async function decryptFor(pass, e){
-  const pt = await crypto.subtle.decrypt({name:"AES-GCM", iv:unb64u(e.i)}, await deriveKey(pass, unb64u(e.s)), unb64u(e.c));
-  return dec.decode(pt);
-}
-
-/* Costruisce il payload completo: {t, p:[{n, s, i, c}]} e le parole segrete. */
-async function buildPayload(title, names, groups){
-  const pairs = draw(names, groups);
-  if (!pairs) throw new Error("Impossibile fare l'estrazione con queste esclusioni: provane meno.");
-  const passes = {}, entries = [];
-  for (const n of shuffle(names)) {
-    passes[n] = generatePassphrase();
-    entries.push({n, ...(await encryptFor(passes[n], pairs[n]))});
-  }
-  return { payload:{ v:1, t:title, p:entries }, passes };
-}
-const packPayload = obj => b64u(enc.encode(JSON.stringify(obj)));
-const unpackPayload = str => JSON.parse(dec.decode(unb64u(str)));
-
-globalThis.SS = { draw, buildPayload, packPayload, unpackPayload, decryptFor, generatePassphrase, normPass, WORDS };
-
-/* ===== Interfaccia (solo nel browser) ===== */
-if (typeof document !== "undefined") (function(){
-  const $ = id => document.getElementById(id);
-  const show = (id, on=true) => $(id).classList.toggle("hidden", !on);
-  const showError = (id, msg) => { $(id).textContent = msg; show(id, !!msg); };
-  const copy = async (text, btn) => {
-    try { await navigator.clipboard.writeText(text); } catch(e) {
-      const t=document.createElement("textarea"); t.value=text; document.body.appendChild(t); t.select(); document.execCommand("copy"); t.remove();
-    }
-    const old=btn.textContent; btn.textContent="Copiato ✓"; setTimeout(()=>btn.textContent=old,1500);
-  };
-
-  const m = location.hash.match(/^#d=(.+)$/);
-  if (m) initGuest(m[1]); else initOrganizer();
-
-  function initGuest(data){
-    let payload;
-    try { payload = unpackPayload(data); if (!payload.p || !payload.p.length) throw 0; }
-    catch(e){ show("view-org"); initOrganizer(); showError("o-error","Il link non è valido o è incompleto: chiedi di rimandarlo."); return; }
-    if (payload.t) { $("title").textContent = "🎁 " + payload.t; document.title = payload.t; }
-    $("subtitle").textContent = "Scegli il tuo nome e inserisci la parola segreta.";
-    const names = payload.p.map(x=>x.n).sort((a,b)=>a.localeCompare(b,"it"));
-    $("g-name").innerHTML = '<option value="">— scegli —</option>' + names.map(n=>`<option></option>`).join("");
-    [...$("g-name").options].slice(1).forEach((o,i)=>{ o.value=o.textContent=names[i]; });
-    show("view-guest");
-    async function go(){
-      showError("g-error",""); show("g-result",false);
-      const name=$("g-name").value, pass=$("g-pass").value;
-      if(!name) return showError("g-error","Scegli il tuo nome.");
-      if(!pass.trim()) return showError("g-error","Inserisci la tua parola segreta.");
-      $("g-go").disabled=true;
-      try {
-        const entry = payload.p.find(x=>x.n===name);
-        $("g-target").textContent = await decryptFor(pass, entry);
-        show("g-result");
-      } catch(e){ showError("g-error","Parola segreta sbagliata per questo nome."); }
-      $("g-go").disabled=false;
-    }
-    $("g-go").onclick = go;
-    $("g-pass").addEventListener("keydown", e=>{ if(e.key==="Enter") go(); });
-  }
-
-  function initOrganizer(){
-    show("view-org");
-    $("subtitle").textContent = "Inserisci i partecipanti: l'estrazione avviene qui, nel tuo browser.";
-    $("o-go").onclick = async () => {
-      showError("o-error",""); show("o-out",false);
-      const names = $("o-names").value.split("\n").map(s=>s.trim()).filter(Boolean);
-      if (names.length < 3) return showError("o-error","Servono almeno 3 partecipanti.");
-      const lower = names.map(n=>n.toLowerCase());
-      if (new Set(lower).size !== names.length) return showError("o-error","Ci sono nomi duplicati: distinguili (es. Marco R., Marco B.).");
-      const groups = $("o-excl").value.split("\n").map(l=>l.split(",").map(s=>s.trim()).filter(Boolean)).filter(g=>g.length>1);
-      for (const g of groups) for (const n of g) if (!names.includes(n)) return showError("o-error",`Nelle esclusioni c'è "${n}", che non è nella lista dei partecipanti.`);
-      $("o-go").disabled=true; $("o-go").textContent="Sto estraendo…";
-      try {
-        const title = $("o-title").value.trim();
-        const { payload, passes } = await buildPayload(title, names, groups);
-        const base = location.href.split("#")[0];
-        const link = base + "#d=" + packPayload(payload);
-        $("o-link").textContent = link;
-        $("o-copy-link").onclick = e => copy(link, e.target);
-        const list = names.slice().sort((a,b)=>a.localeCompare(b,"it"));
-        $("o-passes").innerHTML = "";
-        for (const n of list) {
-          const row = document.createElement("div"); row.className="row";
-          const left = document.createElement("div"); const b = document.createElement("strong"); b.textContent = n;
-          const code = document.createElement("div"); const c = document.createElement("code"); c.textContent = passes[n]; code.appendChild(c);
-          left.append(b, code);
-          const btn = document.createElement("button"); btn.className="small"; btn.textContent="Copia";
-          btn.onclick = e => copy(`Ciao ${n}! La tua parola segreta per il Secret Santa è: ${passes[n]}`, e.target);
-          row.append(left, btn); $("o-passes").appendChild(row);
-        }
-        $("o-copy-all").onclick = e => copy(list.map(n=>`${n}: ${passes[n]}`).join("\n"), e.target);
-        show("o-out");
-        $("o-out").scrollIntoView({behavior:"smooth"});
-      } catch(e){ showError("o-error", e.message || "Errore durante l'estrazione."); }
-      $("o-go").disabled=false; $("o-go").textContent="Estrai e genera il link";
-    };
-  }
-})();
-</script>
+<script src="core.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>

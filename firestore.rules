@@ -1,0 +1,28 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Solo l'account root (creato in Firebase Authentication) può scrivere.
+    function isRoot() {
+      return request.auth != null && request.auth.token.email == 'mu_root@example.com';
+    }
+
+    // Stato generale (estrazione fatta sì/no, titolo): leggibile da tutti.
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if isRoot();
+    }
+
+    // Una persona per documento. I partecipanti leggono solo il proprio (get),
+    // l'elenco completo lo vede solo root. L'abbinamento è cifrato con la password della persona.
+    match /people/{id} {
+      allow get: if true;
+      allow list: if isRoot();
+      allow write: if isRoot();
+    }
+
+    // Password e abbinamenti cifrati con la password di root: leggibile solo da root.
+    match /private/{doc} {
+      allow read, write: if isRoot();
+    }
+  }
+}

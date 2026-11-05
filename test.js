@@ -1,16 +1,12 @@
-// Uso: node test.js   (estrae lo <script> da index.html e ne verifica il nucleo)
+// Uso: node test.js — verifica il nucleo (core.js): estrazione e cifratura
 const fs = require("fs"), assert = require("assert");
-const html = fs.readFileSync(__dirname + "/index.html", "utf8");
-const code = html.match(/<script>([\s\S]*?)<\/script>/)[1];
-(0, eval)(code); // definisce globalThis.SS (nessun document in Node, quindi niente UI)
-const { draw, buildPayload, packPayload, unpackPayload, decryptFor, normPass, WORDS } = SS;
+(0, eval)(fs.readFileSync(__dirname + "/core.js", "utf8"));
+const { draw, encryptFor, decryptFor, generatePassphrase, normName, docId, WORDS } = SS;
 
 (async () => {
-  // 1. nessuna parola con cifre / duplicati nella lista
   assert.strictEqual(new Set(WORDS).size, WORDS.length, "parole duplicate");
   console.log(`ok  lista parole (${WORDS.length})`);
 
-  // 2. estrazione: nessuno pesca sé stesso, è una permutazione, le esclusioni valgono
   const names = ["Anna", "Luca", "Marta", "Paolo", "Giulia", "Sara"];
   const groups = [["Anna", "Luca"], ["Marta", "Paolo"]];
   for (let k = 0; k < 500; k++) {
@@ -23,23 +19,20 @@ const { draw, buildPayload, packPayload, unpackPayload, decryptFor, normPass, WO
     }
   }
   console.log("ok  estrazione (500 giri)");
-
-  // 3. caso impossibile -> null
   assert.strictEqual(draw(["A", "B", "C"], [["A", "B", "C"]]), null);
   console.log("ok  caso impossibile");
 
-  // 4. cifratura: parola giusta decifra, sbagliata no; il giro chiuso torna
-  const { payload, passes } = await buildPayload("Test", names, groups);
-  const back = unpackPayload(packPayload(payload));
-  assert.deepStrictEqual(back, payload, "pack/unpack");
-  const received = {};
-  for (const n of names) received[n] = await decryptFor(passes[n], back.p.find(x => x.n === n));
-  assert.deepStrictEqual(Object.values(received).sort(), names.slice().sort());
-  assert.notStrictEqual(received.Anna, "Anna");
-  await assert.rejects(decryptFor(passes.Luca, back.p.find(x => x.n === "Anna")), "parola altrui accettata");
-  await assert.rejects(decryptFor("sbagliata", back.p.find(x => x.n === "Anna")));
-  // normalizzazione: maiuscole/spazi
-  assert.strictEqual(await decryptFor("  " + passes.Anna.toUpperCase().replace(/-/g, " ") + " ", back.p.find(x => x.n === "Anna")), received.Anna);
-  console.log("ok  cifratura / decifratura / parola sbagliata / normalizzazione");
-  console.log("link, lunghezza payload:", packPayload(payload).length, "caratteri (6 persone)");
+  const pass = generatePassphrase();
+  assert(/^[a-z]+(-[a-z]+){3}-\d\d$/.test(pass), "formato password: " + pass);
+  const e = await encryptFor(pass, "Marta");
+  assert.strictEqual(await decryptFor(pass, e), "Marta");
+  assert.strictEqual(await decryptFor("  " + pass.toUpperCase().replace(/-/g, " ") + " ", e), "Marta");
+  await assert.rejects(decryptFor("sbagliata", e));
+  await assert.rejects(decryptFor(generatePassphrase(), e));
+  console.log("ok  cifratura / parola giusta / sbagliata / normalizzazione");
+
+  assert.strictEqual(docId("  MÀRCO  Rossi "), docId("marco rossi"));
+  assert.notStrictEqual(docId("Anna"), docId("Luca"));
+  assert(!/[\/+=]/.test(docId("Zoë / Ünï")), "id non sicuro per Firestore");
+  console.log("ok  normalizzazione nomi / id documento");
 })().catch(e => { console.error("FALLITO:", e); process.exit(1); });
